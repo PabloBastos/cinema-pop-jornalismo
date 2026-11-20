@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cinema Pop – Painel de respostas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bangers&family=Poppins:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="wrap wide">
+  <div class="top">
+    <h1>PAINEL<br>DA PLATEIA</h1>
+    <div class="logo"><img src="logo.png" alt="elo – Agência de Marketing"></div>
+  </div>
+  <div id="demo" class="demo hidden">MODO DEMO: mostrando só as respostas enviadas neste navegador. Configure o config.js para ver as de todo mundo.</div>
+  <div class="stats" id="stats" aria-live="polite"></div>
+  <div class="tools">
+    <input id="busca" type="search" placeholder="Buscar por nome, curso ou filme..." aria-label="Buscar respostas">
+    <button id="atualizar" class="btn" type="button">ATUALIZAR</button>
+    <a class="btn" href="index.html" style="background:var(--c)">FORMULÁRIO</a>
+  </div>
+  <p id="erro" class="msg err hidden" role="alert"></p>
+  <section id="grid" class="grid" aria-live="polite"></section>
+</main>
+<script src="config.js"></script>
+<script src="api.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const CORES = ['#00B8F0','#FF8FC8','#FFFFFF','#BDEBFF','#FFF7B0'];
+let dados = [];
+if (DEMO) $('demo').classList.remove('hidden');
+function el(tag, cls, txt) { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+function render() {
+  const q = $('busca').value.trim().toLowerCase();
+  const lista = dados.filter(r => !q || [r.nome, r.curso, r.filme, r.descricao].join(' ').toLowerCase().includes(q));
+  const grid = $('grid'); grid.replaceChildren();
+  if (!lista.length) { grid.append(el('div', 'empty', dados.length ? 'Nada encontrado.' : 'Ainda não chegou nenhuma resposta...')); }
+  lista.forEach((r, i) => {
+    const c = el('article', 'resp'); c.style.background = CORES[i % CORES.length];
+    c.append(el('h3', '', r.filme), el('div', 'who', r.nome + ' · ' + r.idade + ' anos · ' + r.curso), el('p', '', r.descricao));
+    grid.append(c);
+  });
+  const cont = {};
+  dados.forEach(r => { const k = r.filme.trim().toLowerCase(); cont[k] = cont[k] || {n: 0, t: r.filme.trim()}; cont[k].n++; });
+  const top = Object.values(cont).sort((a, b) => b.n - a.n)[0];
+  const s = $('stats'); s.replaceChildren();
+  const a = el('div', 'chip'); a.append(el('b', '', String(dados.length)), document.createTextNode('respostas')); s.append(a);
+  if (top && top.n > 1) { const b = el('div', 'chip'); b.append(el('b', '', top.n + 'x'), document.createTextNode('mais citado: ' + top.t)); s.append(b); }
+}
+async function carregar() {
+  try { dados = await listarRespostas(); $('erro').classList.add('hidden'); render(); }
+  catch (e) { $('erro').textContent = 'Não consegui carregar as respostas.'; $('erro').classList.remove('hidden'); }
+}
+$('busca').addEventListener('input', render);
+$('atualizar').addEventListener('click', carregar);
+carregar(); setInterval(carregar, 10000);
+</script>
+</body>
+</html>
